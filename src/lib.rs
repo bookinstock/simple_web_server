@@ -1,12 +1,12 @@
-use std::thread;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::thread;
 
 // #[derive(Debug)]
-pub struct  ThreadPool {
+pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>
+    sender: mpsc::Sender<Job>,
 }
 
 // struct Job;
@@ -29,19 +29,17 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
-        ThreadPool {
-            workers,
-            sender,
-        }
+        ThreadPool { workers, sender }
     }
 
-    pub fn execute<F>(&self, f: F) 
-        where F: FnOnce() + Send + 'static
-            {
-                let job = Box::new(f);
+    pub fn execute<F>(&self, f: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let job = Box::new(f);
 
-                self.sender.send(job).unwrap();
-            }
+        self.sender.send(job).unwrap();
+    }
 }
 
 struct Worker {
@@ -51,19 +49,14 @@ struct Worker {
 
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
-        let thread = thread::spawn(move || {
-            loop {
-                let job = receiver.lock().unwrap().recv().unwrap();
+        let thread = thread::spawn(move || loop {
+            let job = receiver.lock().unwrap().recv().unwrap();
 
-                println!("Worker {:?} go a job; executing.", id);
+            println!("Worker {:?} go a job; executing.", id);
 
-                job();
-            }
+            job();
         });
 
-        Worker {
-            id,
-            thread
-        }
+        Worker { id, thread }
     }
 }
